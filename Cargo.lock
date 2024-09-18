@@ -980,7 +980,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "resend-invoice-from-xlsx"
+name = "resend-invoice"
 version = "0.1.0"
 dependencies = [
  "calamine",
