@@ -33,20 +33,21 @@ impl<'a> InvoiceHeaderRepository<'a> {
 
 	pub async fn update810_flags(&mut self, invoice_ids: &[i32]) -> Result<(), String> {
 		for id in invoice_ids {
-			dbg!(format!(r#"
-			 	EXECUTE [OSC].[dbo].[OBC_InvoiceHeaderSetEDI810Sent] {id}
-			"#));
+			let sql = format!(r#"
+				update dbo.INVOICE_HEADER
+				set EDI_810SENT = 0,
+					EDI_810SENTDT = getdate()
+				where INVOICEID = {id}
+			"#);
 
-			let result = self.db_client.execute(format!(r#"
-				EXECUTE [OSC].[dbo].[OBC_InvoiceHeaderSetEDI810Sent] {id}
-			"#), &[&1i32])
+			let result = self.db_client.execute(sql, &[])
 				.await
 				.map_err(|e| format!("Error updating EDI_810SENT for invoiceId {} error: {}", id, e))?;
 
 			println!("Successfully Updated EDI_810SENT invoiceId {id}");
 		}
 		println!("o-----------------------------------------------o");
-		println!("| Completed updating all EDI_810SENT flags to 1 |");
+		println!("| Completed updating all EDI_810SENT flags to 0 |");
 		println!("o-----------------------------------------------o");
 
 		Ok(())
@@ -54,14 +55,12 @@ impl<'a> InvoiceHeaderRepository<'a> {
 
 	pub async fn send_invoices(&mut self, invoice_ids: &[i32]) -> Result<(), String> {
 		for id in invoice_ids {
-			let url = format!("{}/SendInvoice", self.base_url);
+			let url = format!("{}/SendInvoice/{id}", self.base_url);
 
-			dbg!(&url);
-			dbg!(HashMap::from([
-				("InvoiceId", id)
-			]));
+			println!("{}", url);
+			println!("SendInvoice InvoiceId: {id}");
 			
-			self.http_client.post(url)
+			let res = self.http_client.post(url)
 				.json(&HashMap::from([
 					("InvoiceId", id)
 				]))
@@ -69,7 +68,9 @@ impl<'a> InvoiceHeaderRepository<'a> {
 				.await
 				.map_err(|e| format!("Error sending invoice for invoiceId {} error: {}", id, e))?;
 
-			println!("Successfully Sent Invoice invoiceId {id}");
+			let response_text = res.text().await.map_err(|e| e.to_string())?;
+			
+			println!("Response: {}", response_text);
 		}
 
 		Ok(())
