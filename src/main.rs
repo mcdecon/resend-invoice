@@ -11,7 +11,8 @@ use invoice_repository::InvoiceHeaderRepository;
 async fn main() -> Result<(), String> {
 	dotenv().ok();
 
-	let path = Path::new("C:\\Users\\mcdecon\\repos\\testing\\resend-invoice-from-xlsx\\invoice_nums.txt");
+	let path_str = env::var("FILE_PATH").expect("FILE_PATH must be set.");
+	let path = Path::new(&path_str);
 
 	let invoice_ids = get_invoice_ids(path).map_err(|e| e.to_string())?;
 
